@@ -1,0 +1,8 @@
+{
+  "name": "Memoria - Digital Gift Maker",
+  "description": "Create beautiful digital memories with photos, messages, and music, then share them via QR code.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
