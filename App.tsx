@@ -6,6 +6,27 @@ import { MemoryViewer } from './components/MemoryViewer';
 import { QRDisplay } from './components/QRDisplay';
 import { Heart } from 'lucide-react';
 
+// UTF-8 safe Base64 encoding/decoding helper functions
+const toBase64 = (str: string) => {
+  const bytes = new TextEncoder().encode(str);
+  let binString = "";
+  bytes.forEach((b) => binString += String.fromCharCode(b));
+  return btoa(binString);
+};
+
+const fromBase64 = (str: string) => {
+  try {
+    const binString = atob(str);
+    const bytes = new Uint8Array(binString.length);
+    for (let i = 0; i < binString.length; i++) {
+      bytes[i] = binString.charCodeAt(i);
+    }
+    return new TextDecoder().decode(bytes);
+  } catch (e) {
+    return null;
+  }
+};
+
 const App: React.FC = () => {
   const [view, setView] = useState<'edit' | 'qr' | 'view'>('edit');
   const [memoryData, setMemoryData] = useState<MemoryData | null>(null);
@@ -16,15 +37,15 @@ const App: React.FC = () => {
     const handleHash = () => {
       const hash = window.location.hash.substring(1);
       if (hash) {
-        try {
-          // In a real app, this would be a database ID. 
-          // For this standalone demo, we'll try to decode from hash if it's small,
-          // or fallback to a welcome state.
-          const decoded = JSON.parse(atob(hash));
-          setMemoryData(decoded);
-          setView('view');
-        } catch (e) {
-          console.error("Invalid memory hash", e);
+        const decodedStr = fromBase64(hash);
+        if (decodedStr) {
+          try {
+            const decoded = JSON.parse(decodedStr);
+            setMemoryData(decoded);
+            setView('view');
+          } catch (e) {
+            console.error("Invalid memory hash content", e);
+          }
         }
       }
     };
@@ -36,12 +57,9 @@ const App: React.FC = () => {
 
   const handleSave = (data: MemoryData) => {
     setMemoryData(data);
-    // Create a shareable URL (Warning: Large base64 will fail standard URL limits)
-    // Real-world: Save to cloud and use ID.
-    // For this prototype, we'll use local storage + simulation for small messages.
     try {
         const jsonStr = JSON.stringify(data);
-        const encoded = btoa(jsonStr);
+        const encoded = toBase64(jsonStr);
         const url = `${window.location.origin}${window.location.pathname}#${encoded}`;
         setShareUrl(url);
         setView('qr');

@@ -12,21 +12,32 @@ export const QRDisplay: React.FC<QRDisplayProps> = ({ url, onBack }) => {
   const downloadQR = () => {
     const svg = document.getElementById("qr-code-svg");
     if (!svg) return;
+    
     const svgData = new XMLSerializer().serializeToString(svg);
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
     const img = new Image();
+    
     img.onload = () => {
       canvas.width = img.width;
       canvas.height = img.height;
       ctx?.drawImage(img, 0, 0);
-      const pngFile = canvas.toDataURL("image/png");
-      const downloadLink = document.createElement("a");
-      downloadLink.download = "memoria-qr-code";
-      downloadLink.href = pngFile;
-      downloadLink.click();
+      try {
+        const pngFile = canvas.toDataURL("image/png");
+        const downloadLink = document.createElement("a");
+        downloadLink.download = "memoria-qr-code.png";
+        downloadLink.href = pngFile;
+        downloadLink.click();
+      } catch (e) {
+        console.error("QR Code image export failed", e);
+      }
     };
-    img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
+    
+    // UTF-8 safe Base64 for SVG source
+    const bytes = new TextEncoder().encode(svgData);
+    let binString = "";
+    bytes.forEach((b) => binString += String.fromCharCode(b));
+    img.src = "data:image/svg+xml;base64," + btoa(binString);
   };
 
   const shareLink = () => {
@@ -35,6 +46,10 @@ export const QRDisplay: React.FC<QRDisplayProps> = ({ url, onBack }) => {
         title: 'Memoria - ذكرى لك',
         text: 'لقد صنعت لك شيئاً مميزاً!',
         url: url,
+      }).catch(err => {
+        console.error("Web Share failed", err);
+        navigator.clipboard.writeText(url);
+        alert('تم نسخ الرابط!');
       });
     } else {
       navigator.clipboard.writeText(url);
